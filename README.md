@@ -1,4 +1,4 @@
-![Vector drawing of a short sock](./logo.png)
+<img src="./logo.png" alt="Vector drawing of a short sock" width="200px"/>
 
 # SOQUETTE
 (also written as Socquette, soquettes are a kind of short socks)
