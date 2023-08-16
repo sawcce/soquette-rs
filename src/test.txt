@@ -1,0 +1,10 @@
+model User (
+      name: String,
+      profile_picture: String,
+)
+
+let UserCard = Component(User,
+   (state) -> [
+
+   ] end
+)
