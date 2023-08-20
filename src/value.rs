@@ -7,6 +7,7 @@ use crate::Node;
 pub enum Value {
     String(String),
     Number(f64),
+    Variable(String),
 }
 
 impl Value {
@@ -14,15 +15,15 @@ impl Value {
         match self {
             Value::String(v) => format!("\"{v}\""),
             Value::Number(number) => format!("{number}"),
+            Value::Variable(ref key) => format!("this.{key}"),
         }
     }
-}
 
-impl Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    pub(crate) fn evaluate(&self, context: &HashMap<String, Value>) -> String {
         match self {
-            Value::String(v) => write!(f, "{v}"),
-            Value::Number(number) => write!(f, "{number}"),
+            Value::String(v) => format!("{v}"),
+            Value::Number(number) => format!("{number}"),
+            Value::Variable(key) => format!("{}", context.get(key).unwrap().evaluate(context)),
         }
     }
 }
@@ -50,7 +51,6 @@ impl Display for Operation {
 pub enum Expression {
     Literal(Value),
     FormatString(Vec<Expression>),
-    Variable(String),
     Operation(Box<Expression>, Operation, Box<Expression>),
 }
 
@@ -58,7 +58,6 @@ impl Expression {
     pub(crate) fn js(&self) -> String {
         match self {
             Expression::Literal(ref value) => value.js(),
-            Expression::Variable(ref key) => format!("this.{key}"),
             Expression::Operation(ref lhs, ref operation, ref rhs) => {
                 format!("{} {operation} {}", lhs.js(), rhs.js())
             }
@@ -67,7 +66,7 @@ impl Expression {
 
                 for part in parts {
                     result.push(match part {
-                        Expression::Literal(ref lit) => format!("{lit}"),
+                        Expression::Literal(ref lit) => format!("{}", lit.js()),
                         x => format!("${{{}}}", x.js()),
                     });
                 }
@@ -81,8 +80,7 @@ impl Expression {
 
     pub(crate) fn evaluate(&self, context: &HashMap<String, Value>) -> String {
         match self {
-            &Expression::Literal(ref value) => format!("{value}"),
-            &Expression::Variable(ref key) => format!("{}", context.get(&key.clone()).unwrap()),
+            &Expression::Literal(ref value) => value.evaluate(context),
             &Expression::FormatString(ref parts) => {
                 let mut result = vec![];
 

@@ -321,7 +321,7 @@ fn main() {
     let code = "module main
 component Counter() {
    state count = 0
-   <button class=\"btn btn-primary\" click=\"\">{10}</button>
+   <button class=\"btn btn-primary\" click=\"\">{count}</button>
 }";
     let result = p.parse(code);
 
@@ -341,7 +341,7 @@ fn _main() {
                     "h1",
                     Expression::FormatString(vec![
                         Expression::Literal(Value::String("Hello, ".into())),
-                        Expression::Variable("name".into()),
+                        Expression::Literal(Value::Variable("name".into())),
                         Expression::Literal(Value::String("!".into())),
                     ])
                     .into(),
@@ -367,7 +367,7 @@ fn _main() {
             "button",
             Expression::FormatString(vec![
                 Expression::Literal(Value::String("Count: ".into())),
-                Expression::Variable("count".into()),
+                Expression::Literal(Value::Variable("count".into())),
             ])
             .into(),
         )
@@ -376,7 +376,7 @@ fn _main() {
             Function::new(vec![Statement::Assignment(
                 "count".into(),
                 Expression::Operation(
-                    Box::new(Expression::Variable("count".into())),
+                    Box::new(Expression::Literal(Value::Variable("count".into()))),
                     Operation::Add,
                     Box::new(Expression::Literal(Value::Number(1.0))),
                 ),
