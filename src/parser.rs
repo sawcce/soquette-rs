@@ -6,8 +6,8 @@ use chumsky::prelude::*;
 
 #[derive(Debug)]
 pub struct Module {
-    name: String,
-    body: Vec<ComponentDeclaration>,
+    pub name: String,
+    pub body: Vec<ComponentDeclaration>,
 }
 
 #[derive(Debug)]
