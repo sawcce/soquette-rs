@@ -318,11 +318,11 @@ impl Component {
 fn main() {
     let p = parser::parser();
 
-    let code = "module main
+    let code = r#"module main
 component Counter() {
    state count = 0
-   <button class=\"btn btn-primary\" click=\"\">{count}</button>
-}";
+   <button class="btn btn-primary" click="">{"Count: $count"} {"Test"}</button>
+}"#;
     let result = p.parse(code);
 
     println!("{result:#?}");

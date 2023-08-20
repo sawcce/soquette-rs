@@ -27,12 +27,12 @@ pub enum Node {
 #[derive(Debug, Clone)]
 pub struct HTMLTag {
     name: String,
-    children: Box<Node>,
+    children: Vec<Node>,
     properties: HashMap<String, String>,
 }
 
 impl HTMLTag {
-    pub fn new(name: String, children: Box<Node>, properties: HashMap<String, String>) -> Self {
+    pub fn new(name: String, children: Vec<Node>, properties: HashMap<String, String>) -> Self {
         Self {
             name,
             children,
@@ -42,27 +42,33 @@ impl HTMLTag {
 }
 
 fn expression() -> impl Parser<char, Expression, Error = Simple<char>> {
-    /*let var_seg = just('$')
+    let var_seg = just('$')
         .then(text::ident())
-        .map(|(_, ident)| Expression::Variable(ident));
+        .map(|(_, ident)| Expression::Literal(Value::Variable(ident)));
 
-    let segment = filter(|c: &char| *c != '"')
+    let segment = filter(|c: &char| *c != '"' && *c != '$')
         .repeated()
+        .at_least(1)
         .map(|str| Expression::Literal(Value::String(str.iter().collect())))
         .or(var_seg);
 
     let format_str = segment
-    .repeated()
-    .map(|segs| Expression::FormatString(segs))
-    .delimited_by(just('"'), just('"'));*/
+        .repeated()
+        .map(|segs| Expression::FormatString(segs))
+        .delimited_by(just('"'), just('"'))
+        .labelled("Format string");
 
-    value().map(|value| Expression::Literal(value))
+    value()
+        .map(|value| Expression::Literal(value))
+        .or(format_str)
+        .labelled("Expression")
 }
 
 fn mustache_expr() -> impl Parser<char, Node, Error = Simple<char>> {
     expression()
         .delimited_by(just('{'), just('}'))
         .map(|expr| Node::Expression(expr))
+        .labelled("Mustache expression")
 }
 
 // TODO: Handle when opening tag doesn't match closing tag and vice-versa
@@ -85,7 +91,11 @@ fn tag() -> impl Parser<char, HTMLTag, Error = Simple<char>> {
             .then(property.repeated())
             .then(just('>'))
             .map(|(((_, name), properties), _)| (name, properties));
-        let closing_tag = just("</").then(identifier).then(just('>')).map(|_| ());
+        let closing_tag = just("</")
+            .then(identifier)
+            .then(just('>'))
+            .map(|_| ())
+            .labelled("Closing tag");
 
         opening_tag
             .padded()
@@ -93,17 +103,23 @@ fn tag() -> impl Parser<char, HTMLTag, Error = Simple<char>> {
                 tag_r
                     .map(|tag| Node::Tag(tag))
                     .or(mustache_expr())
-                    .or(empty().map(|_| Node::Empty)),
+                    .padded()
+                    .repeated()
+                    .or(empty().padded().to(Vec::new())),
             )
             .then(closing_tag.padded())
             .map(|(((name, properties), children), _)| {
-                HTMLTag::new(name, Box::new(children), HashMap::from_iter(properties))
+                HTMLTag::new(name, children, HashMap::from_iter(properties))
             })
+            .labelled("HTML Tag")
     })
 }
 
 fn value() -> impl Parser<char, Value, Error = Simple<char>> {
-    text::int(10).map(|number: String| Value::Number(number.parse::<i64>().unwrap() as f64))
+    text::int(10)
+        .map(|number: String| Value::Number(number.parse::<i64>().unwrap() as f64))
+        .or(text::ident().map(|ident| Value::Variable(ident)))
+        .labelled("Value")
 }
 
 pub fn parser() -> impl Parser<char, Module, Error = Simple<char>> {
@@ -123,7 +139,7 @@ pub fn parser() -> impl Parser<char, Module, Error = Simple<char>> {
     let fn_body = state_declaration.padded().repeated().then(
         tag()
             .map(|tag| Node::Tag(tag))
-            .or(empty().map(|_| Node::Empty)),
+            .or(empty().padded().to(Node::Empty)),
     );
 
     let component = component_ident
