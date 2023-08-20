@@ -28,7 +28,7 @@ impl Display for Value {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Operation {
+pub enum Operation {
     Add,
     Substract,
 }
@@ -47,7 +47,7 @@ impl Display for Operation {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Expression {
+pub enum Expression {
     Literal(Value),
     FormatString(Vec<Expression>),
     Variable(String),

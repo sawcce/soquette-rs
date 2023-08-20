@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{functions::Statement, value::Expression, Value};
+use chumsky::error::Simple;
 use chumsky::prelude::*;
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ pub struct ComponentDeclaration {
 #[derive(Debug, Clone)]
 pub enum Node {
     Tag(HTMLTag),
+    Expression(Expression),
     Empty,
 }
 
@@ -37,6 +39,30 @@ impl HTMLTag {
             properties,
         }
     }
+}
+
+fn expression() -> impl Parser<char, Expression, Error = Simple<char>> {
+    /*let var_seg = just('$')
+        .then(text::ident())
+        .map(|(_, ident)| Expression::Variable(ident));
+
+    let segment = filter(|c: &char| *c != '"')
+        .repeated()
+        .map(|str| Expression::Literal(Value::String(str.iter().collect())))
+        .or(var_seg);
+
+    let format_str = segment
+    .repeated()
+    .map(|segs| Expression::FormatString(segs))
+    .delimited_by(just('"'), just('"'));*/
+
+    value().map(|value| Expression::Literal(value))
+}
+
+fn mustache_expr() -> impl Parser<char, Node, Error = Simple<char>> {
+    expression()
+        .delimited_by(just('{'), just('}'))
+        .map(|expr| Node::Expression(expr))
 }
 
 // TODO: Handle when opening tag doesn't match closing tag and vice-versa
@@ -66,6 +92,7 @@ fn tag() -> impl Parser<char, HTMLTag, Error = Simple<char>> {
             .then(
                 tag_r
                     .map(|tag| Node::Tag(tag))
+                    .or(mustache_expr())
                     .or(empty().map(|_| Node::Empty)),
             )
             .then(closing_tag.padded())

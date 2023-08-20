@@ -318,11 +318,10 @@ impl Component {
 fn main() {
     let p = parser::parser();
 
-    let code =
- "module main
+    let code = "module main
 component Counter() {
    state count = 0
-   <button class=\"btn btn-primary\" click=\"\"></button>
+   <button class=\"btn btn-primary\" click=\"\">{10}</button>
 }";
     let result = p.parse(code);
 
