@@ -39,6 +39,7 @@ impl HTMLTag {
     }
 }
 
+// TODO: Handle when opening tag doesn't match closing tag and vice-versa
 fn tag() -> impl Parser<char, HTMLTag, Error = Simple<char>> {
     recursive(|tag_r| {
         let identifier = text::ident().padded();
