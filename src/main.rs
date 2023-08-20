@@ -4,11 +4,14 @@ use std::{
 };
 
 mod value;
+use chumsky::Parser;
 use value::*;
 mod node;
 use node::*;
 mod functions;
 use functions::*;
+
+mod parser;
 
 use uuid::Uuid;
 
@@ -160,6 +163,7 @@ struct Component {
     refs: HashSet<String>,
     exprs: Vec<(String, usize, String)>,
     listeners: Vec<(String, EventListener)>,
+    stateful: bool,
 }
 
 impl Component {
@@ -207,6 +211,19 @@ impl Component {
             refs,
             exprs,
             listeners,
+            stateful: true,
+        }
+    }
+
+    fn stateless(tree: Node) -> Self {
+        Self {
+            stateful: false,
+            id: format!("Soquette_{}", Uuid::new_v4().to_string().replace("-", "")),
+            state: HashMap::new(),
+            exprs: Vec::new(),
+            refs: HashSet::new(),
+            listeners: Vec::new(),
+            tree,
         }
     }
 
@@ -299,6 +316,20 @@ impl Component {
 }
 
 fn main() {
+    let p = parser::parser();
+
+    let code =
+ "module main
+component Counter() {
+   state count = 0
+   <button class=\"btn btn-primary\" click=\"\"></button>
+}";
+    let result = p.parse(code);
+
+    println!("{result:#?}");
+}
+
+fn _main() {
     let mut greet_model = HashMap::new();
     greet_model.insert("name".into(), Value::String("world".into()));
 
@@ -331,14 +362,41 @@ fn main() {
         .node(),
     );
 
-    let generated = greet.generate_class();
-    println!("{generated:#}");
+    let counter = Component::new(
+        HashMap::from([("count".into(), Value::Number(0.0))]),
+        Tag::new(
+            "button",
+            Expression::FormatString(vec![
+                Expression::Literal(Value::String("Count: ".into())),
+                Expression::Variable("count".into()),
+            ])
+            .into(),
+        )
+        .listener(
+            EventType::Click,
+            Function::new(vec![Statement::Assignment(
+                "count".into(),
+                Expression::Operation(
+                    Box::new(Expression::Variable("count".into())),
+                    Operation::Add,
+                    Box::new(Expression::Literal(Value::Number(1.0))),
+                ),
+            )]),
+        )
+        .node(),
+    );
+
+    let greet_code = greet.generate_class();
+    println!("{greet_code:#}");
+
+    let counter_code = counter.generate_class();
+    println!("{counter_code:#}");
 
     let script = format!(
         "
     document.__soquette__ = {{version: \"0.0.1\", static: []}};
-    {}",
-        generated
+    {greet_code}
+    {counter_code}",
     );
 
     let mut renderer = Renderer::new(HashMap::new());
@@ -358,7 +416,14 @@ fn main() {
                 ]),
             )
             .node(),
-            Tag::new("body", Node::component_invocation(&greet)).node(),
+            Tag::new(
+                "body",
+                Node::Fragment(vec![
+                    Node::component_invocation(&greet),
+                    Node::component_invocation(&counter),
+                ]),
+            )
+            .node(),
         ]),
     )
     .node();

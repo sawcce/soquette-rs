@@ -4,14 +4,16 @@ use std::fmt::Display;
 use crate::Node;
 
 #[derive(Debug, Clone)]
-pub(crate) enum Value {
+pub enum Value {
     String(String),
+    Number(f64),
 }
 
 impl Value {
     pub(crate) fn js(&self) -> String {
         match self {
             Value::String(v) => format!("\"{v}\""),
+            Value::Number(number) => format!("{number}"),
         }
     }
 }
@@ -20,7 +22,27 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::String(v) => write!(f, "{v}"),
+            Value::Number(number) => write!(f, "{number}"),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum Operation {
+    Add,
+    Substract,
+}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Operation::Add => "+",
+                Operation::Substract => "-",
+            }
+        )
     }
 }
 
@@ -29,6 +51,7 @@ pub(crate) enum Expression {
     Literal(Value),
     FormatString(Vec<Expression>),
     Variable(String),
+    Operation(Box<Expression>, Operation, Box<Expression>),
 }
 
 impl Expression {
@@ -36,6 +59,9 @@ impl Expression {
         match self {
             Expression::Literal(ref value) => value.js(),
             Expression::Variable(ref key) => format!("this.{key}"),
+            Expression::Operation(ref lhs, ref operation, ref rhs) => {
+                format!("{} {operation} {}", lhs.js(), rhs.js())
+            }
             Expression::FormatString(ref parts) => {
                 let mut result = vec!["`".into()];
 
@@ -66,6 +92,7 @@ impl Expression {
 
                 result.join("")
             }
+            &Expression::Operation(..) => todo!("Operation evaluation not supported yet!"),
         }
     }
 }

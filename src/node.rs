@@ -40,7 +40,8 @@ impl Node {
 
                         for (index, child) in children.iter().enumerate() {
                             println!("Child {child:?}");
-                            result.append(&mut child.visitor(predicate, Some((tag.clone(), index))));
+                            result
+                                .append(&mut child.visitor(predicate, Some((tag.clone(), index))));
                         }
 
                         result
