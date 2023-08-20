@@ -321,7 +321,12 @@ fn main() {
     let code = r#"module main
 component Counter() {
    state count = 0
-   <button class="btn btn-primary" click="">{"Count: $count"} {"Test"}</button>
+   <div>
+    <p>Counter!</p>
+    <button class="btn btn-primary" click="">
+        {"Count: $count"}
+    </button>
+   </div>
 }"#;
     let result = p.parse(code);
 

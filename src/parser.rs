@@ -21,6 +21,7 @@ pub struct ComponentDeclaration {
 pub enum Node {
     Tag(HTMLTag),
     Expression(Expression),
+    Text(String),
     Empty,
 }
 
@@ -103,6 +104,10 @@ fn tag() -> impl Parser<char, HTMLTag, Error = Simple<char>> {
                 tag_r
                     .map(|tag| Node::Tag(tag))
                     .or(mustache_expr())
+                    .or(filter(|c: &char| *c != '<' && *c != '{')
+                        .repeated()
+                        .at_least(1)
+                        .map(|str| Node::Text(str.iter().collect())))
                     .padded()
                     .repeated()
                     .or(empty().padded().to(Vec::new())),
@@ -134,13 +139,13 @@ pub fn parser() -> impl Parser<char, Module, Error = Simple<char>> {
         .then(identifier)
         .then(just('='))
         .then(value().padded())
-        .map(|(((_, name), _), value)| Statement::Assignment(name, Expression::Literal(value)));
+        .map(|(((_, name), _), value)| Statement::Assignment(name, Expression::Literal(value)))
+        .labelled("State");
 
-    let fn_body = state_declaration.padded().repeated().then(
-        tag()
-            .map(|tag| Node::Tag(tag))
-            .or(empty().padded().to(Node::Empty)),
-    );
+    let fn_body = state_declaration
+        .padded()
+        .repeated()
+        .then(tag().map(|tag| Node::Tag(tag)));
 
     let component = component_ident
         .then(identifier)
