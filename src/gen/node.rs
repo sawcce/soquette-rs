@@ -1,4 +1,8 @@
+use uuid::Uuid;
+
 use crate::*;
+
+use super::{Component, Tag};
 
 #[derive(Debug, Clone)]
 pub(crate) enum Node {
