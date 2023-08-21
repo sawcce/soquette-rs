@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 
 use chumsky::Parser;
@@ -7,14 +8,24 @@ pub use gen::*;
 
 mod parser;
 
+#[derive(Debug, Clone)]
+struct Method {
+    name: String,
+    statements: Vec<Statement>,
+}
+
 #[derive(Debug)]
 struct Module {
+    functions: Vec<Method>,
     components: HashMap<String, gen::Component>,
 }
 
 impl Module {
-    fn new(components: HashMap<String, gen::Component>) -> Self {
-        Self { components }
+    fn new(components: HashMap<String, gen::Component>, functions: Vec<Method>) -> Self {
+        Self {
+            components,
+            functions,
+        }
     }
 }
 
@@ -25,9 +36,9 @@ struct Project {
 }
 
 impl Project {
-    fn new(id: String) -> Self {
+    fn new(config: ProjectConfig) -> Self {
         Project {
-            id,
+            id: format!("{}@{}", config.name, config.version),
             modules: HashMap::new(),
         }
     }
@@ -36,15 +47,28 @@ impl Project {
         self.modules
             .entry(format!("{}.{}", self.id, module.name))
             .and_modify(|m| {})
-            .or_insert(Module::new(HashMap::new()));
+            .or_insert(Module::new(HashMap::new(), Vec::new()));
         self
     }
 }
 
-fn main() {
-    let p = parser::parser();
+#[derive(Deserialize)]
+struct ProjectConfig {
+    root: String,
+    name: String,
+    version: String,
+}
 
-    let mut project = Project::new("test_project".into());
+fn main() {
+    let dir = std::env::args().skip(1).next().unwrap_or("./".into());
+    println!("{dir:?}");
+    let config =
+        serde_yaml::from_str(&std::fs::read_to_string(format!("{dir}project.yaml")).unwrap())
+            .unwrap();
+
+    let mut project = Project::new(config);
+
+    let p = parser::parser();
 
     let code = r#"module main
 component Counter() {

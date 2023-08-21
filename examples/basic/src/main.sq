@@ -1,0 +1,5 @@
+module main
+
+export print() {
+    println("Hello, world!")
+}
