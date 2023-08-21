@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::path::Path;
 
 use chumsky::Parser;
 
@@ -52,19 +53,22 @@ impl Project {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct ProjectConfig {
-    root: String,
+    root: Box<Path>,
     name: String,
     version: String,
 }
 
 fn main() {
-    let dir = std::env::args().skip(1).next().unwrap_or("./".into());
+    let path = std::env::args().skip(1).next().unwrap_or("./".into());
+    let dir = Path::new(&path);
+
     println!("{dir:?}");
     let config =
-        serde_yaml::from_str(&std::fs::read_to_string(format!("{dir}project.yaml")).unwrap())
-            .unwrap();
+        serde_yaml::from_str(&std::fs::read_to_string(dir.join("project.yaml")).unwrap()).unwrap();
+
+    println!("{config:?}");
 
     let mut project = Project::new(config);
 
